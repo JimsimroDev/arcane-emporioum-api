@@ -1,32 +1,23 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.artifact.repositories;
 
-import java.util.Optional;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
 
+import reactor.core.publisher.Flux;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.Artifact;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.ECategory;
 
 @Repository
-public interface IArtifactRepository extends JpaRepository<Artifact, Long> {
+public interface IArtifactRepository extends ReactiveCrudRepository<Artifact, Long> {
 
-        @EntityGraph(attributePaths = "translations")
-        Page<Artifact> findAll(Pageable pagination);
+        Flux<Artifact> findAll(Pageable pageable);
 
-        @EntityGraph(attributePaths = "translations")
-        @Query("SELECT a FROM Artifact a WHERE a.id = :id")
-        Optional<Artifact> findWithTranslationsById(@Param("id") Long id);
+        Page<Artifact> findAllByCategory(Pageable pageable, ECategory category);
 
-        @EntityGraph(attributePaths = "translations")
-        Page<Artifact> findALLByCategory(Pageable pagination, ECategory category);
-
-        @EntityGraph(attributePaths = "translations")
         @Query("""
                         SELECT a FROM Artifact a
                         WHERE LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -38,5 +29,5 @@ public interface IArtifactRepository extends JpaRepository<Artifact, Long> {
                                    OR LOWER(t.description) LIKE LOWER(CONCAT('%', :keyword, '%')))
                            )
                         """)
-        Page<Artifact> searchByTitleOrDescription(Pageable pagination, @Param("keyword") String keyword);
+        Flux<Artifact> searchByTitleOrDescription(@Param("keyword") String keyword);
 }

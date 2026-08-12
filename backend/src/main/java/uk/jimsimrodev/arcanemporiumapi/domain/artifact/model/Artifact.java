@@ -4,37 +4,21 @@ import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
 
-@Entity
 @Table(name = "artifacts")
 public class Artifact {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String title;
     private String description;
     private BigDecimal price;
     private Integer requiredLevel;
     private Boolean inStock;
-
-    @Enumerated(EnumType.STRING)
     private ECategory category;
-
-    @Enumerated(EnumType.STRING)
     private ERarity rarity;
-    
     private String imageUrl;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "artifact")
-    private Set<ArtifactTranslation> translations = new HashSet<>();
 
     public Long getId() {
         return id;
@@ -107,13 +91,4 @@ public class Artifact {
     public void setInStock(Boolean inStock) {
         this.inStock = inStock;
     }
-
-    public Set<ArtifactTranslation> getTranslations() {
-        return translations;
-    }
-
-    public void setTranslations(Set<ArtifactTranslation> translations) {
-        this.translations = translations;
-    }
-
 }

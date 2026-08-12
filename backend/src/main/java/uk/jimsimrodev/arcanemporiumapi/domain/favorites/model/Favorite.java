@@ -2,37 +2,24 @@ package uk.jimsimrodev.arcanemporiumapi.domain.favorites.model;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.Artifact;
-import uk.jimsimrodev.arcanemporiumapi.domain.auth.model.UserEntity;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
-@Entity
 @Table(name = "favorites")
 public class Favorite {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_user")
-    UserEntity user;
+    @Column("id_user")
+    Long userId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_artifact")
-    Artifact artifact;
+    @Column("id_artifact")
+    Long artifactId;
 
     private LocalDateTime createdAt;
 
-    @PrePersist
     void prePersist() {
         this.createdAt = LocalDateTime.now();
     }
@@ -45,20 +32,20 @@ public class Favorite {
         this.id = id;
     }
 
-    public UserEntity getUser() {
-        return user;
+    public Long getUserId() {
+        return userId;
     }
 
-    public void setUser(UserEntity user) {
-        this.user = user;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
-    public Artifact getArtifact() {
-        return artifact;
+    public Long getArtifactId() {
+        return artifactId;
     }
 
-    public void setArtifact(Artifact artifact) {
-        this.artifact = artifact;
+    public void setArtifactId(Long artifactId) {
+        this.artifactId = artifactId;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -68,7 +55,5 @@ public class Favorite {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
-
-    
 
 }

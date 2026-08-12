@@ -1,25 +1,22 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.favorites.repositories;
 
-import java.util.Optional;
-
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import uk.jimsimrodev.arcanemporiumapi.domain.favorites.model.Favorite;
 
 @Repository
-public interface IFavoriteRepository extends JpaRepository<Favorite, Long> {
+public interface IFavoriteRepository extends ReactiveCrudRepository<Favorite, Long> {
 
-    @EntityGraph(attributePaths = { "artifact", "artifact.translations" })
-    Page<Favorite> findAllByUser_IdOrderByCreatedAtDesc(Pageable pagination, Long userId);
+    Flux<Favorite> findAllByUser_IdOrderByCreatedAtDesc(Pageable pageable, Long userId);
 
-    boolean existsByUser_IdAndArtifact_Id(Long userId, Long artifactId);
+    Mono<Boolean> existsByUser_IdAndArtifact_Id(Long userId, Long artifactId);
 
-    Optional<Favorite> findByUser_IdAndArtifact_Id(Long userId, Long artifactId);
+    Mono<Favorite> findByUser_IdAndArtifact_Id(Long userId, Long artifactId);
 
-    void deleteByUser_IdAndArtifact_Id(Long userId, Long artifactId);
+    Mono<Void> deleteByUser_IdAndArtifact_Id(Long userId, Long artifactId);
 
 }
