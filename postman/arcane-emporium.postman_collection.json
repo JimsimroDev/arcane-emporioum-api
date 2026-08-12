@@ -1,0 +1,249 @@
+{
+  "info": {
+    "name": "Arcane Emporium API",
+    "description": "Colección para probar la API de Arcane Emporium. Autenticación por cookie de sesión: primero ejecuta POST /login y Postman guardará automáticamente el JSESSIONID para los endpoints protegidos. Idioma por query param ?lang=es|en|pt (default: es).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Públicos",
+      "item": [
+        {
+          "name": "1.1 Listar artefactos (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/artifacts?lang=es&page=0&size=12&sort=price,desc"
+          },
+          "response": []
+        },
+        {
+          "name": "1.2 Detalle de artefacto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/artifacts/1?lang=es"
+          },
+          "response": []
+        },
+        {
+          "name": "1.3 Artefactos por categoría",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/artifacts/category/weapon?lang=es&page=0&size=20"
+          },
+          "response": []
+        },
+        {
+          "name": "1.4 Buscar artefactos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/artifacts/search?q=elixir&lang=es&page=0&size=20"
+          },
+          "response": []
+        },
+        {
+          "name": "1.5 Etiquetas i18n",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/labels?lang=es"
+          },
+          "response": []
+        },
+        {
+          "name": "1.6 Registrar usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@correo.com\",\n  \"password\": \"clave123\"\n}"
+            },
+            "url": "http://localhost:8080/api/v1/register"
+          },
+          "response": []
+        },
+        {
+          "name": "1.7 Login (guarda sesión)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@correo.com\",\n  \"password\": \"clave123\"\n}"
+            },
+            "url": "http://localhost:8080/api/v1/login"
+          },
+          "response": []
+        },
+        {
+          "name": "1.8 Solicitar reset de contraseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@correo.com\"\n}"
+            },
+            "url": "http://localhost:8080/api/v1/forgot-password"
+          },
+          "response": []
+        },
+        {
+          "name": "1.9 Confirmar reset de contraseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"EL_TOKEN_RECIBIDO\",\n  \"newPassword\": \"nuevaClave123\"\n}"
+            },
+            "url": "http://localhost:8080/api/v1/reset-password"
+          },
+          "response": []
+        },
+        {
+          "name": "1.10 Endpoint público de prueba",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/public"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Autenticados (requieren login)",
+      "item": [
+        {
+          "name": "2.1 Perfil de usuario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/user"
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 Cambiar contraseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"clave123\",\n  \"newPassword\": \"nuevaClave123\"\n}"
+            },
+            "url": "http://localhost:8080/api/v1/change-password"
+          },
+          "response": []
+        },
+        {
+          "name": "2.3 Añadir favorito",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/favorites/1?lang=es"
+          },
+          "response": []
+        },
+        {
+          "name": "2.4 Listar favoritos (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/favorites?lang=es&page=0&size=12"
+          },
+          "response": []
+        },
+        {
+          "name": "2.5 Quitar favorito",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/favorites/1"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Solo ADMIN",
+      "item": [
+        {
+          "name": "3.1 Listar usuarios (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/users?page=0&size=6"
+          },
+          "response": []
+        },
+        {
+          "name": "3.2 Actualizar rol de usuario",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": "http://localhost:8080/api/v1/users/1/role"
+          },
+          "response": []
+        },
+        {
+          "name": "3.3 Eliminar usuario",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/users/1"
+          },
+          "response": []
+        },
+        {
+          "name": "3.4 Endpoint admin de prueba",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8080/api/v1/admin"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

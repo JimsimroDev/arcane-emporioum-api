@@ -1,0 +1,76 @@
+spring:
+  config:
+    import: "optional:file:.env.properties"
+
+  application:
+    name: arcane-emporium-api
+
+  messages:
+    basename: messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+    use-code-as-default-message: true
+    always-use-message-format: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${NAME_DB}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: 8080
+  compression:
+    enabled: true
+    min-response-size: 2048
+    mime-types: application/json,application/xml,text/xml,text/plain
+
+# ─── Actuator ────────────────────────────────────────────────────────────────
+management:
+  info:
+    env:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info
+      cors:
+        allowed-origins: ${URL_CORS_PERMISSION}
+        allowed-methods: "GET,OPTIONS"
+
+info:
+  application:
+    groupId: "@project.groupId@"
+    artifactId: "@project.artifactId@"
+    version: "@project.version@"
+
+# ─── BREVO API ────────────────────────────────────────────────────────────────
+brevo:
+  api-key: ${BREVO_API_KEY}
+  sender:
+    email: ${BREVO_SENDER_EMAIL}
+    name: ${BREVO_SENDER_NAME}
+
+# ─── CORS ────────────────────────────────────────────────────────────────
+cors:
+  url:
+    permitions: ${CORS_PERMISSION}
