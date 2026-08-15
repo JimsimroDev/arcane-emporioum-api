@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Gem, PackageOpen, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Gem, Loader2, PackageOpen, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { fetchArtifact, fetchArtifacts, fetchArtifactsByCategory, searchArtifactsByKeyword } from '../api/artifacts.js'
 import { ArtifactCard } from '../components/artifact/ArtifactCard.jsx'
@@ -15,6 +15,16 @@ const CATEGORIES = [
   { value: 'armor' },
   { value: 'potion' },
 ]
+
+// La API WebFlux devuelve un array JSON plano: no puede anunciar cuántos
+// elementos sirve por página. Por eso el frontend no fija un tamaño de página.
+// La primera petición se hace SIN el parámetro `size`, el backend aplica su
+// default, y aprendemos el tamaño efectivo a partir de la longitud de esa
+// primera respuesta.
+
+// Estas etiquetas normalmente vienen del backend (/api/v1/labels). Hasta que
+// catalog.loadMore exista allí, se usa una traducción local como respaldo.
+const LOAD_MORE_LABELS = { es: 'Cargar más', en: 'Load more', pt: 'Carregar mais' }
 
 function SkeletonCard() {
   return (
@@ -35,21 +45,41 @@ function SkeletonCard() {
   )
 }
 
+function LoadMoreButton({ label, loading, error, onClick }) {
+  return (
+    <div className="mt-10 flex flex-col items-center gap-2">
+      <Button variant="secondary" onClick={onClick} disabled={loading}>
+        {loading && <Loader2 size={16} className="animate-spin" />}
+        {label}
+      </Button>
+      {error && <p className="text-xs text-arcane-400">{error.message}</p>}
+    </div>
+  )
+}
+
 export function ArtifactCatalogPage() {
   const { t, lang } = useI18n()
   const navigate = useNavigate()
   const { favorites, isFavorite, pendingId, toggle } = useFavorites(lang)
-  const [artifacts, setArtifacts] = useState(null)
+
+  const [artifacts, setArtifacts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [loadMoreError, setLoadMoreError] = useState(null)
+  const [hasMore, setHasMore] = useState(false)
+  // Tamaño de página efectivo, aprendido de la primera respuesta del backend.
+  const [pageSize, setPageSize] = useState(null)
+  const [page, setPage] = useState(0)
   const [reloadKey, setReloadKey] = useState(0)
   const [category, setCategory] = useState(null)
-  const [page, setPage] = useState(0)
-  const [totalPages, setTotalPages] = useState(0)
-  const [currentPage, setCurrentPage] = useState(0)
-  const [pageSize, setPageSize] = useState(null)
-  const prevLang = useRef(lang)
 
+  const loadMoreLabel = t('catalog.loadMore')
+  const resolvedLoadMoreLabel =
+    loadMoreLabel === 'catalog.loadMore' ? LOAD_MORE_LABELS[lang] ?? 'Load more' : loadMoreLabel
+
+  // Carga inicial / recarga (cambió idioma, categoría o se reintentó):
+  // reemplaza toda la lista con la primera página.
   useEffect(() => {
     let cancelled = false
 
@@ -57,31 +87,23 @@ export function ArtifactCatalogPage() {
       setLoading(true)
       setError(null)
       try {
+        // La primera petición va SIN `size`: decide el default del backend.
         const data = category
-          ? await fetchArtifactsByCategory(category, lang, page, pageSize)
-          : await fetchArtifacts(lang, page, pageSize)
+          ? await fetchArtifactsByCategory(category, lang, 0)
+          : await fetchArtifacts(lang, 0)
         if (!cancelled) {
-          setArtifacts(data.content)
-          setTotalPages(data.totalPages ?? 0)
-          setCurrentPage(data.number ?? 0)
-          if (pageSize === null) setPageSize(data.size ?? null)
+          setArtifacts(data)
+          setPage(0)
+          // El tamaño de página efectivo del servidor = longitud de la primera página.
+          const effectiveSize = data.length
+          setPageSize(effectiveSize > 0 ? effectiveSize : null)
+          // No sabemos si la página 0 estaba "llena": cualquier elemento significa "probar de nuevo".
+          setHasMore(data.length > 0)
         }
       } catch (err) {
-        if (!cancelled) {
-          setError(err)
-        }
+        if (!cancelled) setError(err)
       } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-
-    if (prevLang.current !== lang) {
-      prevLang.current = lang
-      if (page !== 0) {
-        setPage(0)
-        return
+        if (!cancelled) setLoading(false)
       }
     }
 
@@ -89,60 +111,73 @@ export function ArtifactCatalogPage() {
     return () => {
       cancelled = true
     }
-  }, [lang, category, reloadKey, page])
+  }, [lang, category, reloadKey])
+
+  async function loadMore() {
+    setLoadingMore(true)
+    setLoadMoreError(null)
+    try {
+      const next = page + 1
+      const data = category
+        ? await fetchArtifactsByCategory(category, lang, next, pageSize)
+        : await fetchArtifacts(lang, next, pageSize)
+      setArtifacts((current) => [...current, ...data])
+      setPage(next)
+      // Una página más corta que el tamaño aprendido significa que llegamos al final.
+      setHasMore(pageSize !== null && data.length === pageSize)
+    } catch (err) {
+      setLoadMoreError(err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const [search, setSearch] = useState('')
-
   const [searchStatus, setSearchStatus] = useState('idle')
   const [searchResult, setSearchResult] = useState(null)
-  const [searchResults, setSearchResults] = useState(null)
+  const [searchResults, setSearchResults] = useState([])
   const [searchPage, setSearchPage] = useState(0)
-  const [searchTotalPages, setSearchTotalPages] = useState(0)
-  const prevSearch = useRef('')
+  const [searchPageSize, setSearchPageSize] = useState(null)
+  const [hasMoreSearch, setHasMoreSearch] = useState(false)
+  const [searchLoadingMore, setSearchLoadingMore] = useState(false)
+  const [searchLoadMoreError, setSearchLoadMoreError] = useState(null)
 
   function handleCategoryChange(nextCategory) {
     setCategory(nextCategory)
     setPage(0)
     setSearchStatus('idle')
     setSearchResult(null)
-    setSearchResults(null)
+    setSearchResults([])
   }
 
+  // Cualquier cambio en la búsqueda inicia una búsqueda nueva desde la página 0.
   useEffect(() => {
     const q = search.trim()
     if (!q) {
       setSearchStatus('idle')
       setSearchResult(null)
-      setSearchResults(null)
-      setSearchTotalPages(0)
+      setSearchResults([])
+      setHasMoreSearch(false)
+      setSearchPageSize(null)
       return
-    }
-
-    if (prevSearch.current !== q) {
-      prevSearch.current = q
-      if (searchPage !== 0) {
-        setSearchPage(0)
-        return
-      }
     }
 
     let cancelled = false
     setSearchStatus('loading')
 
     if (/^\d+$/.test(q)) {
-      setSearchTotalPages(0)
       fetchArtifact(Number(q), lang)
         .then((artifact) => {
           if (!cancelled) {
             setSearchResult(artifact)
-            setSearchResults(null)
+            setSearchResults([])
             setSearchStatus('found')
           }
         })
         .catch(() => {
           if (!cancelled) {
             setSearchResult(null)
-            setSearchResults(null)
+            setSearchResults([])
             setSearchStatus('notfound')
           }
         })
@@ -151,25 +186,46 @@ export function ArtifactCatalogPage() {
       }
     }
 
-    searchArtifactsByKeyword(q, lang, searchPage, pageSize)
+    // La primera búsqueda va SIN `size`: decide el default del backend.
+    searchArtifactsByKeyword(q, lang, 0)
       .then((data) => {
         if (!cancelled) {
-          setSearchResults(data.content)
-          setSearchTotalPages(data.totalPages ?? 0)
-          if (pageSize === null) setPageSize(data.size ?? null)
-          setSearchStatus(data.content.length > 0 ? 'found' : 'notfound')
+          setSearchResults(data)
+          setSearchPage(0)
+          const effectiveSize = data.length
+          setSearchPageSize(effectiveSize > 0 ? effectiveSize : null)
+          setHasMoreSearch(data.length > 0)
+          setSearchStatus(data.length > 0 ? 'found' : 'notfound')
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setSearchResults(null)
+          setSearchResults([])
           setSearchStatus('notfound')
         }
       })
     return () => {
       cancelled = true
     }
-  }, [search, searchPage, lang])
+  }, [search, lang])
+
+  async function loadMoreSearch() {
+    const q = search.trim()
+    const next = searchPage + 1
+    setSearchLoadingMore(true)
+    setSearchLoadMoreError(null)
+    try {
+      const data = await searchArtifactsByKeyword(q, lang, next, searchPageSize)
+      setSearchResults((current) => [...current, ...data])
+      setSearchPage(next)
+      // Una página más corta que el tamaño aprendido significa que llegamos al final.
+      setHasMoreSearch(searchPageSize !== null && data.length === searchPageSize)
+    } catch (err) {
+      setSearchLoadMoreError(err)
+    } finally {
+      setSearchLoadingMore(false)
+    }
+  }
 
   return (
     <>
@@ -268,31 +324,14 @@ export function ArtifactCatalogPage() {
                   />
                 ))}
               </div>
-            {totalPages > 1 && (
-              <div className="mt-10 flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  aria-label={t('catalog.prev')}
-                  className="rounded-lg border border-arcane-700 bg-arcane-800 px-3 py-1.5 text-sm text-arcane-400 transition hover:text-arcane-100 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <span aria-label={t('catalog.page')} className="text-sm text-arcane-400">
-                  {page + 1} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                  disabled={page >= totalPages - 1}
-                  aria-label={t('catalog.next')}
-                  className="rounded-lg border border-arcane-700 bg-arcane-800 px-3 py-1.5 text-sm text-arcane-400 transition hover:text-arcane-100 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
-            )}
+              {hasMore && (
+                <LoadMoreButton
+                  label={resolvedLoadMoreLabel}
+                  loading={loadingMore}
+                  error={loadMoreError}
+                  onClick={loadMore}
+                />
+              )}
             </>
           )
         ) : searchStatus === 'loading' ? (
@@ -302,67 +341,48 @@ export function ArtifactCatalogPage() {
         ) : searchStatus === 'found' ? (
           <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-              {searchResults ? (
-                searchResults.map((artifact) => (
-                  <ArtifactCard
-                    key={artifact.id}
-                    artifact={artifact}
-                    id={artifact.id}
-                    isFavorite={isFavorite(artifact.id)}
-                    favoritePending={pendingId === artifact.id}
-                    onToggleFavorite={(id) => toggle(id).catch((err) => {
-                      if (err.status === 403) {
-                        navigate('/login', { replace: true })
-                      }
-                    })}
-                  />
-                ))
-              ) : (
-                <ArtifactCard
-                  artifact={searchResult}
-                  id={searchResult.id}
-                  isFavorite={isFavorite(searchResult.id)}
-                  favoritePending={pendingId === searchResult.id}
-                  onToggleFavorite={(id) => toggle(id).catch((err) => {
-                    if (err.status === 403) {
-                      navigate('/login', { replace: true })
-                    }
-                  })}
-                />
-              )}
+              {searchResults.length > 0
+                ? searchResults.map((artifact) => (
+                    <ArtifactCard
+                      key={artifact.id}
+                      artifact={artifact}
+                      id={artifact.id}
+                      isFavorite={isFavorite(artifact.id)}
+                      favoritePending={pendingId === artifact.id}
+                      onToggleFavorite={(id) => toggle(id).catch((err) => {
+                        if (err.status === 403) {
+                          navigate('/login', { replace: true })
+                        }
+                      })}
+                    />
+                  ))
+                : searchResult && (
+                    <ArtifactCard
+                      artifact={searchResult}
+                      id={searchResult.id}
+                      isFavorite={isFavorite(searchResult.id)}
+                      favoritePending={pendingId === searchResult.id}
+                      onToggleFavorite={(id) => toggle(id).catch((err) => {
+                        if (err.status === 403) {
+                          navigate('/login', { replace: true })
+                        }
+                      })}
+                    />
+                  )}
             </div>
-            {searchTotalPages > 1 && (
-              <div className="mt-8 flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSearchPage((p) => Math.max(0, p - 1))}
-                  disabled={searchPage === 0}
-                  aria-label={t('catalog.prev')}
-                  className="rounded-lg border border-arcane-700 bg-arcane-800 px-3 py-1.5 text-sm text-arcane-400 transition hover:text-arcane-100 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <span aria-label={t('catalog.page')} className="text-sm text-arcane-400">
-                  {searchPage + 1} / {searchTotalPages}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setSearchPage((p) => Math.min(searchTotalPages - 1, p + 1))}
-                  disabled={searchPage >= searchTotalPages - 1}
-                  aria-label={t('catalog.next')}
-                  className="rounded-lg border border-arcane-700 bg-arcane-800 px-3 py-1.5 text-sm text-arcane-400 transition hover:text-arcane-100 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
+            {hasMoreSearch && (
+              <LoadMoreButton
+                label={resolvedLoadMoreLabel}
+                loading={searchLoadingMore}
+                error={searchLoadMoreError}
+                onClick={loadMoreSearch}
+              />
             )}
           </>
         ) : (
           <div className="py-16 text-center">
             <PackageOpen size={48} className="mx-auto text-arcane-700" />
-            <p className="mt-4 text-sm text-arcane-400">
-              {searchStatus === 'invalid' ? t('catalog.search') : t('artifact.notfound')}
-            </p>
+            <p className="mt-4 text-sm text-arcane-400">{t('artifact.notfound')}</p>
           </div>
         )}
       </section>

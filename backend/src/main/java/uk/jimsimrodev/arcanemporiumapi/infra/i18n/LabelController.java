@@ -1,15 +1,14 @@
 package uk.jimsimrodev.arcanemporiumapi.infra.i18n;
 
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
-
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.ECategory;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.ERarity;
+
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1")

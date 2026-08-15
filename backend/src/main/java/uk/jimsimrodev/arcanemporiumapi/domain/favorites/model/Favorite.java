@@ -1,10 +1,10 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.favorites.model;
 
-import java.time.LocalDateTime;
-
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
+
+import java.time.LocalDateTime;
 
 @Table(name = "favorites")
 public class Favorite {
@@ -19,10 +19,6 @@ public class Favorite {
     Long artifactId;
 
     private LocalDateTime createdAt;
-
-    void prePersist() {
-        this.createdAt = LocalDateTime.now();
-    }
 
     public Long getId() {
         return id;

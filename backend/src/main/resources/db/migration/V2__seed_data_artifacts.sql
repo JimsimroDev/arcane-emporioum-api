@@ -20,7 +20,7 @@ VALUES (1, 'Elixir of Astral Vitality',
 INSERT INTO artifact_translations (id_artifact, locale, title, description)
 VALUES (
            -- Artifact 1
-        1, 'es', 'Elixir de Vitalidad Astral',
+           1, 'es', 'Elixir de Vitalidad Astral',
            'Una poción azul brillante que restaura instantáneamente 200 puntos de maná y elimina efectos de maldiciones.'),
        (1, 'en', 'Elixir of Astral Vitality',
         'A glowing blue potion that instantly restores 200 mana points and clears curse effects.'),

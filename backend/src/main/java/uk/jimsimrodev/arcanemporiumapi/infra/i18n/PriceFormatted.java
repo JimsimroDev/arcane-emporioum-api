@@ -1,10 +1,10 @@
 package uk.jimsimrodev.arcanemporiumapi.infra.i18n;
 
+import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.Locale;
-
-import org.springframework.stereotype.Component;
 
 @Component
 public class PriceFormatted {

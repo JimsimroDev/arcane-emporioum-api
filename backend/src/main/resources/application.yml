@@ -10,15 +10,15 @@ spring:
     encoding: UTF-8
     fallback-to-system-locale: false
     use-code-as-default-message: true
-    always-use-message-format: true
 
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/${NAME_DB}
+    url: r2dbc:postgresql://localhost:5432/${NAME_DB:arcane-emporium-db}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
   flyway:
-    url: jdbc:postgresql://localhost:5432/${NAME_DB}
+    enabled: false
+    url: jdbc:postgresql://localhost:5432/${NAME_DB:arcane-emporium-db}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 

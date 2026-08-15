@@ -1,28 +1,19 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.auth.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 
-@Entity
 @Table(name = "users")
 public class UserEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(unique = true)
     private String email;
     private String password;
     private String resetToken;
     private LocalDateTime tokenResetPasswordExpiresAt;
-    @Enumerated(EnumType.STRING)
     private Erole role;
     private Boolean active;
 
@@ -54,7 +45,7 @@ public class UserEntity {
     }
 
     public String getResetToken() {
-        return resetToken;
+        return this.resetToken;
     }
 
     public void setResetToken(String resetToken) {
@@ -62,7 +53,7 @@ public class UserEntity {
     }
 
     public LocalDateTime getTokenResetPasswordExpiresAt() {
-        return tokenResetPasswordExpiresAt;
+        return this.tokenResetPasswordExpiresAt;
     }
 
     public void setTokenResetPasswordExpiresAt(LocalDateTime setTokenResetPasswordExpiresAt) {
@@ -73,16 +64,15 @@ public class UserEntity {
         return this.role;
     }
 
-    public void setRole(Erole rol) {
-        this.role = rol;
+    public void setRole(Erole role) {
+        this.role = role;
     }
 
     public Boolean getActive() {
-        return active;
+        return this.active;
     }
 
     public void setActive(Boolean activated) {
         this.active = activated;
     }
-
 }

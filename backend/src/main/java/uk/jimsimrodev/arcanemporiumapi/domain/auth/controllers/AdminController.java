@@ -1,20 +1,12 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.auth.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import uk.jimsimrodev.arcanemporiumapi.domain.auth.dto.UpdateRole;
 import uk.jimsimrodev.arcanemporiumapi.domain.auth.dto.UserResponse;
 import uk.jimsimrodev.arcanemporiumapi.domain.auth.services.UserService;
@@ -32,18 +24,21 @@ public class AdminController {
     }
 
     @GetMapping()
-    public Flux<Page<UserResponse>> getAllUsers(@PageableDefault(size = 6) Pageable pagination) {
-        return ResponseEntity.ok(userService.getAllUsers(pagination));
+    public Mono<PageImpl<UserResponse>> getAllUsers(@RequestParam(defaultValue = "0") int page,
+                                                    @RequestParam(defaultValue = "20") int size) {
+
+        return userService.getAllUsers(PageRequest.of(page, size));
     }
 
     @PatchMapping("/{id}/role")
-    public ResponseEntity<UserResponse> updateRole(@PathVariable Long id, @RequestBody UpdateRole updateRole) {
-        return ResponseEntity.ok(userService.updateRole(id, updateRole.role()));
+    public Mono<UserResponse> updateRole(@PathVariable Long id, @RequestBody UpdateRole updateRole) {
+
+        return userService.updateRole(id, updateRole.role());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
-        return ResponseEntity.noContent().build();
+    public Mono<?> deleteUser(@PathVariable Long id) {
+
+        return userService.deleteUser(id);
     }
 }

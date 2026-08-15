@@ -1,11 +1,11 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.artifact.mapper;
 
-import java.util.Locale;
-import java.util.Optional;
-
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.dto.ArtifactResponse;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.Artifact;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.ArtifactTranslation;
+
+import java.util.List;
+import java.util.Locale;
 
 public final class ArtifactMapper {
 
@@ -13,13 +13,18 @@ public final class ArtifactMapper {
     }
 
     // Entitiy ->DTO
-    public static ArtifactResponse toResponse(Artifact artifact, Locale locale, String priceFormatted,
-            String currency) {
+    public static ArtifactResponse toResponse(Artifact artifact,
+                                              List<ArtifactTranslation> translations,
+                                              Locale locale,
+                                              String priceFormatted,
+                                              String currency) {
+
+        ArtifactTranslation translation = findTranslation(translations, locale);
 
         return new ArtifactResponse(
                 artifact.getId(),
-                resolveTitle(artifact, locale),
-                resolveDescription(artifact, locale),
+                translation != null ? translation.getTitle() : artifact.getTitle(),
+                translation != null ? translation.getDescription() : artifact.getDescription(),
                 artifact.getPrice(),
                 priceFormatted,
                 currency,
@@ -30,21 +35,10 @@ public final class ArtifactMapper {
                 artifact.getImageUrl());
     }
 
-    private static String resolveTitle(Artifact artifact, Locale locale) {
-        return resolveTranslation(artifact, locale)
-                .map(ArtifactTranslation::getTitle)
-                .orElse(artifact.getTitle());
-    }
-
-    private static String resolveDescription(Artifact artifact, Locale locale) {
-        return resolveTranslation(artifact, locale)
-                .map(ArtifactTranslation::getDescription)
-                .orElse(artifact.getDescription());
-    }
-
-    private static Optional<ArtifactTranslation> resolveTranslation(Artifact artifact, Locale locale) {
-        return artifact.getTranslations().stream()
+    private static ArtifactTranslation findTranslation(List<ArtifactTranslation> translations, Locale locale) {
+        return translations.stream()
                 .filter(t -> locale.getLanguage().equals(t.getLocale()))
-                .findFirst();
+                .findFirst()
+                .orElse(null);
     }
 }

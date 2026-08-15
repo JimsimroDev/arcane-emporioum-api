@@ -1,75 +1,68 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.favorites.service;
 
-import java.util.Locale;
-
-import org.springframework.data.domain.Page;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.dto.ArtifactResponse;
-import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.Artifact;
-import uk.jimsimrodev.arcanemporiumapi.domain.artifact.repositories.IArtifactRepository;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.services.ArtifactService;
 import uk.jimsimrodev.arcanemporiumapi.domain.auth.Repositories.IUserRepository;
-import uk.jimsimrodev.arcanemporiumapi.domain.auth.model.UserEntity;
-import uk.jimsimrodev.arcanemporiumapi.domain.favorites.model.Favorite;
+import uk.jimsimrodev.arcanemporiumapi.domain.favorites.mapper.FavoriteMapper;
 import uk.jimsimrodev.arcanemporiumapi.domain.favorites.repositories.IFavoriteRepository;
+
+import java.util.Locale;
 
 @Service
 public class FavoriteService implements IFavoriteService {
 
     private final IFavoriteRepository favoriteRepository;
     private final IUserRepository userRepository;
-    private final IArtifactRepository artifactRepository;
     private final ArtifactService artifactService;
 
+    @Autowired
     public FavoriteService(IFavoriteRepository favoriteRepository, IUserRepository userRepository,
-            IArtifactRepository artifactRepository, ArtifactService artifactService) {
+                           ArtifactService artifactService) {
         this.favoriteRepository = favoriteRepository;
         this.userRepository = userRepository;
-        this.artifactRepository = artifactRepository;
         this.artifactService = artifactService;
     }
 
     @Override
-    public ArtifactResponse addFavorite(String userEmail, Long artifactId, Locale locale, String currency) {
-        UserEntity user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-        Artifact artifact = artifactRepository.findWithTranslationsById(artifactId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Artefacto no encontrado"));
+    public Mono<ArtifactResponse> addFavorite(String userEmail, Long artifactId, Locale locale, String currency) {
 
-        if (!favoriteRepository.existsByUser_IdAndArtifact_Id(user.getId(), artifactId)) {
-            Favorite favorite = new Favorite();
-            favorite.setUser(user);
-            favorite.setArtifact(artifact);
-            favoriteRepository.save(favorite);
-        }
-
-        return artifactService.toResponse(artifact, locale, currency);
-
+        return userRepository.findByEmail(userEmail)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado")))
+                .flatMap(user -> favoriteRepository.existsByUserIdAndArtifactId(user.getId(), artifactId)
+                        .flatMap(exists -> {
+                            if (exists) {
+                                return Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "El artefacto ya es favorito"));
+                            }
+                            return favoriteRepository.save(FavoriteMapper.toEntity(user.getId(), artifactId))
+                                    .flatMap(f -> artifactService.getArtifact(artifactId, locale, currency));
+                        }));
     }
 
     @Override
-    public Page<ArtifactResponse> getFavorites(Pageable pagination, String userEmail, Locale locale, String currency) {
-        UserEntity user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+    public Flux<ArtifactResponse> getFavorites(Pageable pageable, String userEmail, Locale locale, String currency) {
 
-        return favoriteRepository.findAllByUser_IdOrderByCreatedAtDesc(pagination, user.getId())
-                .map(favorite -> artifactService.toResponse(favorite.getArtifact(), locale, currency));
+        return userRepository.findByEmail(userEmail)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"))).
+                flatMapMany(user -> favoriteRepository.findAllByUserId(user.getId(), pageable))
+                .flatMap(favorite -> artifactService.getArtifact(favorite.getArtifactId(), locale, currency));
 
     }
 
     @Override
     @Transactional
-    public void removeFavorite(String userEmail, Long artifactId) {
-        UserEntity user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-
-        favoriteRepository.deleteByUser_IdAndArtifact_Id(user.getId(), artifactId);
+    public Mono<Void> removeFavorite(String userEmail, Long artifactId) {
+        
+        return userRepository.findByEmail(userEmail)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado")))
+                .flatMap(user -> favoriteRepository.deleteByUserIdAndArtifactId(user.getId(), artifactId));
 
     }
-
 }

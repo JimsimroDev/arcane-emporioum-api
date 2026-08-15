@@ -1,18 +1,18 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.favorites.service;
 
-import java.util.Locale;
-
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.dto.ArtifactResponse;
+
+import java.util.Locale;
 
 public interface IFavoriteService {
 
-    ArtifactResponse addFavorite(String userEmail, Long artifactId, Locale locale, String currency);
+    Mono<ArtifactResponse> addFavorite(String userEmail, Long artifactId, Locale locale, String currency);
 
-    public Page<ArtifactResponse> getFavorites(Pageable pagination,String userEmail, Locale locale, String currency);
+    Flux<ArtifactResponse> getFavorites(Pageable pagination, String userEmail, Locale locale, String currency);
 
-    public void removeFavorite(String userEmail, Long artifactId);
+    Mono<Void> removeFavorite(String userEmail, Long artifactId);
 
 }

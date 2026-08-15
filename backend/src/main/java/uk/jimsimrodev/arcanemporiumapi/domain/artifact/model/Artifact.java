@@ -1,11 +1,9 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.artifact.model;
 
-import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
+
+import java.math.BigDecimal;
 
 @Table(name = "artifacts")
 public class Artifact {

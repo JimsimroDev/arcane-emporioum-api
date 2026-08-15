@@ -2,6 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { addFavorite, fetchFavorites, removeFavorite } from '../api/favorites.js'
 import { useAuth } from './useAuth.js'
 
+// La API WebFlux devuelve un array JSON plano: no puede anunciar cuántos
+// elementos sirve por página. La primera petición se hace SIN el parámetro
+// `size` para que decida el default del backend (PageableDefault), y aprendemos
+// el tamaño efectivo a partir de la longitud de esa primera respuesta.
+
 export function useFavorites(lang) {
   const { isLoggedIn } = useAuth()
   const [favorites, setFavorites] = useState([])
@@ -10,7 +15,7 @@ export function useFavorites(lang) {
   const [pendingId, setPendingId] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [page, setPage] = useState(0)
-  const [totalPages, setTotalPages] = useState(0)
+  // Tamaño de página efectivo, aprendido de la primera respuesta del backend.
   const [pageSize, setPageSize] = useState(null)
 
   useEffect(() => {
@@ -32,9 +37,8 @@ export function useFavorites(lang) {
       try {
         const data = await fetchFavorites(lang, page, pageSize)
         if (!cancelled) {
-          setFavorites(data.content ?? [])
-          setTotalPages(data.totalPages ?? 0)
-          if (pageSize === null) setPageSize(data.size ?? null)
+          setFavorites(data)
+          setPageSize(data.length > 0 ? data.length : null)
         }
       } catch (err) {
         if (!cancelled) {
@@ -86,5 +90,5 @@ export function useFavorites(lang) {
     [isFavorite, lang],
   )
 
-  return { favorites, loading, error, pendingId, isFavorite, toggle, retry, page, totalPages, setPage }
+  return { favorites, loading, error, pendingId, isFavorite, toggle, retry, page, setPage }
 }

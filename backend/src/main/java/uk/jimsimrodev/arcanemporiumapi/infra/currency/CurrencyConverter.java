@@ -1,10 +1,10 @@
 package uk.jimsimrodev.arcanemporiumapi.infra.currency;
 
+import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Optional;
-
-import org.springframework.stereotype.Component;
 
 @Component
 public class CurrencyConverter {

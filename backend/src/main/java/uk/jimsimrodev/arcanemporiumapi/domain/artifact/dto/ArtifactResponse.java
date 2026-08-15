@@ -1,9 +1,9 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.artifact.dto;
 
-import java.math.BigDecimal;
-
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.ECategory;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.ERarity;
+
+import java.math.BigDecimal;
 
 public record ArtifactResponse(
         Long id,

@@ -1,22 +1,17 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.auth.services;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.server.context.ServerSecurityContextRepository;
 import org.springframework.stereotype.Service;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import reactor.core.publisher.Flux;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import uk.jimsimrodev.arcanemporiumapi.domain.auth.Repositories.IUserRepository;
 import uk.jimsimrodev.arcanemporiumapi.domain.auth.dto.RequestPasswordReset;
@@ -27,17 +22,23 @@ import uk.jimsimrodev.arcanemporiumapi.domain.auth.model.Erole;
 import uk.jimsimrodev.arcanemporiumapi.domain.auth.model.UserEntity;
 import uk.jimsimrodev.arcanemporiumapi.infra.email.IEmailService;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Service
 public class UserService implements IUserService {
 
-    private IUserRepository userRepository;
-    private IEmailService emailService;
-    private PasswordEncoder passwordEncoder;
-    private AuthenticationManager authenticationManager;
-    private final SecurityContextRepository securityContextRepository;
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
 
+    private final IUserRepository userRepository;
+    private final IEmailService emailService;
+    private final PasswordEncoder passwordEncoder;
+    private final ReactiveAuthenticationManager authenticationManager;
+    private final ServerSecurityContextRepository securityContextRepository;
+
+    @Autowired
     public UserService(IUserRepository userRepository, IEmailService emailService, PasswordEncoder passwordEncoder,
-            AuthenticationManager authenticationManager, SecurityContextRepository securityContextRepository) {
+                       ReactiveAuthenticationManager authenticationManager, ServerSecurityContextRepository securityContextRepository) {
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
@@ -46,122 +47,118 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public void forgotPassword(RequestPasswordReset requestPasswordReset) {
+    public Mono<Void> forgotPassword(RequestPasswordReset requestPasswordReset) {
 
-        UserEntity user = userRepository.findByEmail(requestPasswordReset.email())
-                .orElseThrow(() -> new RuntimeException("Si el correo existe, recibirás un enlace"));
-
-        String token = UUID.randomUUID().toString();
-        user.setResetToken(token);
-
-        user.setTokenResetPasswordExpiresAt(LocalDateTime.now().plusMinutes(15));
-
-        userRepository.save(user);
-
-        emailService.resetPassword(requestPasswordReset.email(), token);
-
+        return userRepository.findByEmail(requestPasswordReset.email())
+                .switchIfEmpty(Mono.error(new RuntimeException("Si el correo existe, recibirás un enlace")))
+                .flatMap(user -> {
+                    String token = UUID.randomUUID().toString();
+                    user.setResetToken(token);
+                    user.setTokenResetPasswordExpiresAt(LocalDateTime.now().plusMinutes(15));
+                    return userRepository.save(user)
+                            .then(Mono.fromRunnable(() -> emailService.resetPassword(requestPasswordReset.email(), token)));
+                });
     }
 
     @Override
-    public void resetPassword(String newPassword, String token) {
+    public Mono<Void> resetPassword(String newPassword, String token) {
 
-        UserEntity user = userRepository.findByResetToken(token)
-                .orElseThrow(() -> new RuntimeException("Token expirado o inválido"));
-
-        if (user.getTokenResetPasswordExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token expirado");
-        }
-
-        user.setPassword(passwordEncoder.encode(newPassword));
-
-        user.setResetToken(null);
-
-        userRepository.save(user);
+        return userRepository.findByResetToken(token)
+                .switchIfEmpty(Mono.error(new RuntimeException("Token expirado o inválido")))
+                .flatMap(user -> {
+                    if (user.getTokenResetPasswordExpiresAt().isBefore(LocalDateTime.now())) {
+                        return Mono.error(new RuntimeException("Token expirado"));
+                    }
+                    user.setPassword(passwordEncoder.encode(newPassword));
+                    user.setResetToken(null);
+                    return userRepository.save(user);
+                }).then();
     }
 
     @Override
-    public UserResponse register(UserRequest userRequest) {
-
-        String passwordEncript = passwordEncoder.encode(userRequest.password());
+    public Mono<UserResponse> register(UserRequest userRequest) {
 
         UserEntity user = UserMapper.toEntity(
                 userRequest,
-                passwordEncript,
+                passwordEncoder.encode(userRequest.password()),
                 Erole.USER);
 
-        userRepository.save(user);
-
-        return UserMapper.toResponse(user);
+        return userRepository.save(user).map(UserMapper::toResponse);
     }
 
     @Override
-    public UserResponse login(UserRequest userRequest, HttpServletRequest request, HttpServletResponse response) {
+    public Mono<UserResponse> login(UserRequest userRequest, ServerWebExchange exchange) {
 
-        Authentication authentication = authenticationManager
-                .authenticate(
-                        new UsernamePasswordAuthenticationToken(
-                                userRequest.email(),
-                                userRequest.password()));
+        return authenticationManager
+                .authenticate(new UsernamePasswordAuthenticationToken(userRequest.email(), userRequest.password()))
+                .flatMap(authentication -> securityContextRepository
+                        .save(exchange,new SecurityContextImpl(authentication))
+                        .then(userRepository.findByEmail(authentication.getName())
+                                .map(UserMapper::toResponse)));
+    }
 
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(authentication);
-        SecurityContextHolder.setContext(context);
-        securityContextRepository.saveContext(context, request, response);
+    @Override
+    public Mono<PageImpl<UserResponse>> getAllUsers(Pageable pageable) {
 
-        System.out.println("se logro la utenticacion " + authentication.getName());
-
-        UserEntity user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("Usuario o clave incorrecta"));
-
-        return UserMapper.toResponse(user);
+        return userRepository.countByActiveTrue()
+                .zipWith(userRepository.findAllByActiveTrue(pageable).collectList())
+                .map(tuple -> new PageImpl<>(
+                        tuple.getT2().stream().map(UserMapper::toResponse).toList(),
+                        pageable,
+                        tuple.getT1()));
 
     }
 
     @Override
-    public Flux<UserResponse> getAllUsers(Pageable pagination) {
-        return Flux.fromIterable(userRepository.findAllByActiveTrue(pagination).map(UserMapper::toResponse));
+    public Mono<UserResponse> updateRole(Long id, String newRole) {
+
+        return userRepository.findById(id)
+                .switchIfEmpty(Mono.error(new RuntimeException("Usuario no encontrado id: " + id)))
+                .flatMap(user -> ensureNotLastAdmin(user)
+                        .thenReturn(user)
+                        .flatMap(u -> {
+                            u.setRole(Erole.fromRole(newRole));
+                            return userRepository.save(u).map(UserMapper::toResponse);
+                        }));
     }
 
     @Override
-    public UserResponse updateRole(Long id, String newRole) {
+    public Mono<Void> changePassword(String email, String currentPassword, String newPassword) {
 
-        UserEntity user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado id: " + id));
-
-        ensureNotLastAdmin(user);
-
-        user.setRole(Erole.fromRole(newRole));
-        userRepository.save(user);
-        return UserMapper.toResponse(user);
+        return userRepository.findByEmail(email)
+                .switchIfEmpty(Mono.error(new RuntimeException("Usuario no encontrado")))
+                .flatMap(user -> {
+                    if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+                        LOGGER.error("Las contraseñas no coinciden");
+                      return Mono.error(new RuntimeException("Las contraseñs no coinciden"));
+                    }
+                    user.setPassword(passwordEncoder.encode(newPassword));
+                    return userRepository.save(user);
+                }).then();
     }
 
     @Override
-    public void changePassword(String email, String currentPassword, String newPassword) {
-        UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    public Mono<Void> deleteUser(Long id) {
 
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("Las contraseñas no coinciden");
+        return userRepository.findById(id)
+                .switchIfEmpty(Mono.error(new RuntimeException("Usuario no encontrado id: " + id)))
+                .flatMap(user -> ensureNotLastAdmin(user)
+                        .thenReturn(user)
+                        .flatMap(u -> {
+                            u.setActive(false);
+                            return userRepository.save(u);
+                        })).then();
+    }
+
+    private Mono<Void> ensureNotLastAdmin(UserEntity target) {
+        if (target.getRole() != Erole.ADMIN) {
+            return Mono.empty();
         }
+        
+        return userRepository.countByRole(Erole.ADMIN)
+                .flatMap(count -> count <= 1
+                        ? Mono.error(new RuntimeException("Debe existir almenos un administrador"))
+                        : Mono.empty());
 
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-    }
-
-    @Override
-    public void deleteUser(Long id) {
-
-        UserEntity user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado id: " + id));
-                
-        ensureNotLastAdmin(user);
-        user.setActive(false);
-        userRepository.save(user);
-    }
-
-    private void ensureNotLastAdmin(UserEntity target) {
-        if (target.getRole() == Erole.ADMIN && userRepository.countByRole(Erole.ADMIN) <= 1) {
-            throw new RuntimeException("Debe existir al menos un administrador");
-        }
     }
 }
