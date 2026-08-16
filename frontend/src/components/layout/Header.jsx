@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Gem, Heart, LogOut, ShieldCheck } from 'lucide-react'
+import { Gem, Heart, ListOrdered, LogOut, ShieldCheck } from 'lucide-react'
 import { LanguageSwitcher } from '../LanguageSwitcher.jsx'
 import { Button } from '../ui/Button.jsx'
 import { useAuth } from '../../hooks/useAuth.js'
@@ -41,6 +41,10 @@ export function Header() {
               <Button as={Link} to={ROUTES.favorites} variant="ghost">
                 <Heart size={15} />
                 <span className="hidden sm:inline">{t('nav.favorites')}</span>
+              </Button>
+              <Button as={Link} to={ROUTES.orders} variant="ghost">
+                <ListOrdered size={15} />
+                <span className="hidden sm:inline">{t('nav.orders')}</span>
               </Button>
               {isAdmin && (
                 <Button as={Link} to={ROUTES.admin} variant="ghost">
