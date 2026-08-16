@@ -11,6 +11,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage.jsx'
 import { AdminPage } from './pages/AdminPage.jsx'
 import { UserPage } from './pages/UserPage.jsx'
 import { FavoritesPage } from './pages/FavoritesPage.jsx'
+import { OrdersPage } from './pages/OrdersPage.jsx'
 import { NotFoundPage } from './pages/NotFoundPage.jsx'
 import { ROUTES } from './lib/constants.js'
 
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/user" element={<UserPage />} />
             <Route path={ROUTES.favorites} element={<FavoritesPage />} />
+            <Route path={ROUTES.orders} element={<OrdersPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
