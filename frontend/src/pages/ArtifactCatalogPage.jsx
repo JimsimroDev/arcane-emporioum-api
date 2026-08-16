@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button.jsx'
 import { Card } from '../components/ui/Card.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useFavorites } from '../hooks/useFavorites.js'
+import { LOAD_MORE_LABELS } from '../lib/loadMoreLabels.js'
 
 const CATEGORIES = [
   { value: 'weapon' },
@@ -21,10 +22,6 @@ const CATEGORIES = [
 // La primera petición se hace SIN el parámetro `size`, el backend aplica su
 // default, y aprendemos el tamaño efectivo a partir de la longitud de esa
 // primera respuesta.
-
-// Estas etiquetas normalmente vienen del backend (/api/v1/labels). Hasta que
-// catalog.loadMore exista allí, se usa una traducción local como respaldo.
-const LOAD_MORE_LABELS = { es: 'Cargar más', en: 'Load more', pt: 'Carregar mais' }
 
 function SkeletonCard() {
   return (
