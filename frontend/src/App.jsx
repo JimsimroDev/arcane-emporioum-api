@@ -3,6 +3,7 @@ import { I18nProvider } from './i18n/I18nProvider.jsx'
 import { Layout } from './components/layout/Layout.jsx'
 import { ArtifactCatalogPage } from './pages/ArtifactCatalogPage.jsx'
 import { ArtifactDetailPage } from './pages/ArtifactDetailPage.jsx'
+import { CheckoutPage } from './pages/CheckoutPage.jsx'
 import { LoginPage } from './pages/LoginPage.jsx'
 import { RegisterPage } from './pages/RegisterPage.jsx'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage.jsx'
@@ -21,6 +22,7 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<ArtifactCatalogPage />} />
             <Route path="/artifact/:id" element={<ArtifactDetailPage />} />
+            <Route path={ROUTES.checkout} element={<CheckoutPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path={ROUTES.register} element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />

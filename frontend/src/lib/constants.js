@@ -7,6 +7,7 @@ export const ROUTES = {
   admin: '/admin',
   user: '/user',
   favorites: '/favorites',
+  checkout: '/checkout',
 }
 
 export const AUTH_STORAGE_KEY = 'arcane_user'
