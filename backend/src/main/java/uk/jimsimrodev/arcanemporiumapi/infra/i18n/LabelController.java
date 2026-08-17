@@ -153,16 +153,16 @@ public class LabelController {
         labels.put("order.error.unauthorized", messageService.label("order.error.unauthorized", locale));
         labels.put("order.status.CANCELLED", messageService.label("order.status.CANCELLED", locale));
 
-        labels.put("order.cancelc", messageService.label("order.cancelc", locale));
-        labels.put("order.cancelConfirmc", messageService.label("order.cancelConfirmc", locale));
-        labels.put("order.cancelSuccessc", messageService.label("order.cancelSuccessc", locale));
-        labels.put("order.error.cancelc", messageService.label("order.error.cancelc", locale));
-        labels.put("order.updateStatusc", messageService.label("order.updateStatusc", locale));
-        labels.put("order.statusUpdatedc", messageService.label("order.statusUpdatedc", locale));
-        labels.put("order.error.statusc", messageService.label("order.error.statusc", locale));
-        labels.put("nav.ordersc", messageService.label("nav.ordersc", locale));
-        labels.put("orders.titlec", messageService.label("orders.titlec", locale));
-        labels.put("orders.emptyc", messageService.label("orders.emptyc", locale));
+        labels.put("order.cancel", messageService.label("order.cancel", locale));
+        labels.put("order.cancelConfirm", messageService.label("order.cancelConfirm", locale));
+        labels.put("order.cancelSuccess", messageService.label("order.cancelSuccess", locale));
+        labels.put("order.error.cancel", messageService.label("order.error.cancel", locale));
+        labels.put("order.updateStatus", messageService.label("order.updateStatus", locale));
+        labels.put("order.statusUpdated", messageService.label("order.statusUpdated", locale));
+        labels.put("order.error.status", messageService.label("order.error.status", locale));
+        labels.put("nav.orders", messageService.label("nav.orders", locale));
+        labels.put("orders.title", messageService.label("orders.title", locale));
+        labels.put("orders.empty", messageService.label("orders.empty", locale));
 
         for (ECategory category : ECategory.values()) {
             labels.put("artifact.category." + category.name().toLowerCase(),
