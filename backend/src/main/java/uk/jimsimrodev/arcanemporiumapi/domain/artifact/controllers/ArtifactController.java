@@ -10,7 +10,6 @@ import reactor.core.publisher.Mono;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.dto.ArtifactResponse;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.ECategory;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.services.ArtifactService;
-import uk.jimsimrodev.arcanemporiumapi.infra.i18n.MessageService;
 
 import java.util.Locale;
 
@@ -40,7 +39,7 @@ public class ArtifactController {
 
     @GetMapping("/{id}")
     public Mono<ArtifactResponse> getArtifact(@PathVariable Long id, Locale locale,
-            @RequestParam(required = false) String currency) {
+                                              @RequestParam(required = false) String currency) {
 
         return artifactService.getArtifact(id, locale, currency);
     }
@@ -54,7 +53,7 @@ public class ArtifactController {
             @RequestParam(required = false) String currency) {
 
         ECategory parsed = ECategory.fromRole(category);
-        
+
         return artifactService.getArtifactCategorList(PageRequest.of(page, size), parsed, locale, currency);
     }
 

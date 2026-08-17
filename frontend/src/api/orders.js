@@ -15,3 +15,18 @@ export function getMyOrders({ page = 0, size, lang }) {
 
   return apiFetch(`/api/v1/orders?${params.toString()}`)
 }
+
+export function cancelOrder(orderId, lang) {
+  const params = new URLSearchParams({ lang })
+  return apiFetch(`/api/v1/orders/${orderId}/cancel?${params.toString()}`, {
+    method: 'POST',
+  })
+}
+
+export function updateOrderStatus(orderId, newStatus, lang) {
+  const params = new URLSearchParams({ lang })
+  return apiFetch(`/api/v1/orders/${orderId}?${params.toString()}`, {
+    method: 'PATCH',
+    body: { newStatus },
+  })
+}

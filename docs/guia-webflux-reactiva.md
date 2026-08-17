@@ -828,7 +828,190 @@ Si Brevo falla → el error se registra en el log y el flujo termina → 200.
 
 ---
 
-## 13. Consejos para seguir aprendiendo
+## 13. Patrones avanzados: lo que nadie te dice
+
+Los conceptos de las secciones anteriores son la base. Lo que sigue son patrones y bugs que
+no aparecen en tutoriales — los descubrimos en producción y cada uno tiene una lección concreta.
+
+### 13.1 `defaultIfEmpty(null)` — el NPE fantasma
+
+**El problema:** quieres que un `Mono` vacío devuelva `null` en lugar de completarse sin valor:
+
+```java
+return repository.findById(id)
+        .defaultIfEmpty(null);   // compila, pero explota en runtime
+```
+
+**Por qué ocurre:** Reactor **prohíbe `null` dentro de su pipeline**. Internamente, cada
+emisión pasa por `Objects.requireNonNull`, así que `defaultIfEmpty(null)` lanza
+`NullPointerException` en el momento en que el Mono está vacío y intenta emitir `null`.
+
+**El fix:** usar un valor no-nulo. Un string vacío, una lista vacía, un objeto placeholder:
+
+```java
+return repository.findById(id)
+        .defaultIfEmpty(new ArtifactResponse());   // objeto vacío, no null
+```
+
+**Analogía:** intentar meter `null` dentro de una caja Mono. La caja tiene una regla interna
+— "acepto cualquier valor, pero NUNCA null". Si le das null, la caja rechaza la operación.
+
+**Regla:** en Reactor, `null` no existe. Si algo puede estar "vacío", usa `Mono.empty()`.
+Si necesitas un valor por defecto, que sea un objeto real, nunca `null`.
+
+### 13.2 Email fuera de la transacción — el patrón Opción B
+
+**El problema:** en `createOrder`, el email de confirmación se ejecuta DENTRO de la
+transacción de base de datos. Si Brevo (proveedor de email) falla, el `Mono` se convierte
+en error y el `save` del pedido hace **rollback** — el pedido desaparece.
+
+**Por qué ocurre:** cuando encadenas operaciones dentro del mismo `flatMap`, todas comparten
+el contexto transaccional. Un error en cualquiera de ellas revierte todo.
+
+**El patrón correcto:**
+
+```java
+// 1. Guardar el pedido (transacción DB)
+return orderRepository.save(order)
+        .flatMap(saved -> {
+            // 2. Responder al cliente PRIMERO (el pedido ya existe en la BD)
+            OrderResponse response = OrderMapper.toResponse(saved);
+
+            // 3. Email en cadena SEPARADA — fuera de la transacción
+            return emailService.sendOrderConfirmation(response)
+                    .onErrorResume(err -> {
+                        LOGGER.error("Email de confirmación no enviado (pedido {} creado)", saved.getId(), err);
+                        return Mono.empty();   // no afecta al cliente
+                    })
+                    .thenReturn(response);
+        });
+```
+
+**La clave:** el email se lanza después del `save` exitoso y usa `onErrorResume` para
+absorber cualquier fallo. Si Brevo cae → el pedido YA existe → el cliente recibe 200 con
+la respuesta → el email falla silenciosamente y se loguea.
+
+**Analogía:** es como enviar una carta de confirmación por correo postal después de que el
+pedido ya está en la caja. Si el cartero pierde la carta, el pedido sigue ahí.
+
+**Regla:** las operaciones de "efecto secundario" (emails, notificaciones, logs externos)
+NUNCA deben estar dentro de la transacción que garantiza la integridad de datos.
+
+### 13.3 Autorización por rol vs. por propiedad
+
+**El problema:** confundir "quién puede acceder" (seguridad) con "qué puede hacer con
+un recurso específico" (reglas de negocio).
+
+**El patrón — dos capas distintas:**
+
+| Capa | Dónde vive | Quién la evalúa | Ejemplo |
+| --- | --- | --- | --- |
+| **Seguridad** (rol) | `@PreAuthorize` en el **controller** | Spring Security | `hasRole('ADMIN')` |
+| **Negocio** (propiedad) | Validación en el **service** | Tu código | `order.userId == currentUser.id` |
+
+**Admin updateOrder:**
+
+```java
+// Controller — seguridad por ROL
+@PutMapping("/{id}/status")
+@PreAuthorize("hasRole('ADMIN')")
+public Mono<OrderResponse> updateStatus(...) {
+    return orderService.updateStatus(id, status);
+}
+```
+
+El admin puede cambiar CUALQUIER pedido. El rol se evalúa en la capa de seguridad.
+
+**User cancelOrder:**
+
+```java
+// Service — validación por PROPIEDAD
+public Mono<OrderResponse> cancelOrder(Long orderId, Long userId) {
+    return orderRepository.findById(orderId)
+            .filter(order -> order.getUserId().equals(userId))
+            .switchIfEmpty(Mono.error(new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "No puedes cancelar este pedido")))
+            .flatMap(order -> {
+                order.setStatus(EOrderStatus.CANCELLED);
+                return orderRepository.save(order);
+            });
+}
+```
+
+Solo puedes cancelar TU pedido. Si intentas cancelar uno ajeno → 403 Forbidden. Esta
+lógica vive en el service porque es una regla de negocio, no de autenticación.
+
+**Por qué son distintas:** el rol responde "¿estás autorizado para usar este endpoint?";
+la propiedad responde "¿este recurso te pertenece?". Un admin tiene el rol pero no la
+propiedad de un pedido ajeno — el service lo rechaza igual.
+
+**Analogía:** el rol es la llave que abre la puerta del edificio (seguridad). La propiedad
+es la llave de tu apartamento específico (negocio). Tener la llave del edificio no te da
+acceso a todos los apartamentos.
+
+### 13.4 WebFlux ≠ tiempo real — la confusión más común
+
+**El problema:** la gente asume que WebFlux empuja datos al cliente en tiempo real porque
+es "reactivo".
+
+**La realidad:** WebFlux es **concurrencia reactiva** (non-blocking I/O), NO push de datos
+al cliente. HTTP sigue siendo pull-only — el navegador debe hacer una petición para
+recibir una respuesta. WebFlux hace que esas peticiones sean más eficientes, pero no
+cambia el modelo de comunicación.
+
+```
+WebFlux:        cliente ──request──► servidor ──response──► cliente
+                (más eficiente, no bloqueante, pero sigue siendo request-response)
+
+Tiempo real:    servidor ──push──► cliente (sin que el cliente pregunte)
+```
+
+**Para tiempo real en WebFlux, necesitas algo adicional:**
+
+| Protocolo | Dirección | Cuándo usar | Soporte en WebFlux |
+| --- | --- | --- | --- |
+| **SSE** (Server-Sent Events) | Unidireccional (server → client) | Notificaciones, feeds, dashboards | `Flux<ServerSentEvent>` |
+| **WebSocket** | Bidireccional | Chat, juegos, colaboración en vivo | `WebSocketHandler` |
+
+Ejemplo de SSE con WebFlux:
+
+```java
+@GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+public Flux<ServerSentEvent<OrderEvent>> streamOrders() {
+    return orderEventEmitter
+            .map(event -> ServerSentEvent.<OrderEvent>builder()
+                    .id(event.getId().toString())
+                    .event("order-update")
+                    .data(event)
+                    .build());
+}
+```
+
+El cliente se suscribe con `EventSource` y recibe eventos push mientras la conexión
+esté abierta. Pero eso es una capa APARTE de WebFlux — WebFlux solo facilita que el
+`Flux` se serialice como SSE.
+
+**La confusión viene de:** Reactor emite valores a lo largo del tiempo (push interno), y
+eso se parece a "tiempo real". Pero eso es push **dentro del pipeline reactivo**, no push
+**al cliente HTTP**. Para llegar al cliente, necesitas SSE o WebSocket como puente.
+
+**Analogía:** WebFlux es como una fábrica con cinta transportadora eficiente (no bloqueante).
+Pero el cliente (el comprador) sigue teniendo que ir a recoger su pedido al mostrador.
+SSE es como si le avisaran por WhatsApp cuando está listo — pero eso es un servicio
+adicional, no parte de la cinta.
+
+### 13.5 Anti-patrones avanzados (resumen)
+
+| Anti-patrón | Por qué es grave | Fix |
+| --- | --- | --- |
+| `defaultIfEmpty(null)` | NPE en runtime, compila sin error | Usar objeto no-nulo o `Mono.empty()` |
+| Email dentro de la transacción | Rollback del pedido si el email falla | Cadena separada + `onErrorResume` |
+| Solo `@PreAuthorize` en service | No se valida autenticación en la capa de seguridad | Rol en controller, propiedad en service |
+| Confundir WebFlux con tiempo real | Expectativas incorrectas sobre push al cliente | SSE o WebSocket como capa adicional |
+
+---
+
+## 14. Consejos para seguir aprendiendo
 
 - **Practica en orden:** `Mono.just` → `map` → `flatMap` → `switchIfEmpty` → `collectList`.
   Esos cinco cubren el 80 % de este proyecto.

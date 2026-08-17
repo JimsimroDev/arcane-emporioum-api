@@ -3,6 +3,7 @@ package uk.jimsimrodev.arcanemporiumapi.domain.order.model;
 public enum OrderStatus {
     PREPARING("en preparacion"),
     IN_TRANSIT("en camino"),
+    CANCELLED("cancelado"),
     DELIVERED("entregado");
 
     private String status;

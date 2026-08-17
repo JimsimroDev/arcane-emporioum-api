@@ -133,6 +133,37 @@ public class LabelController {
         labels.put("admin.userDeleted", messageService.label("admin.userDeleted", locale));
         labels.put("admin.cannotDeleteSelf", messageService.label("admin.cannotDeleteSelf", locale));
 
+        labels.put("order.buyNow", messageService.label("order.buyNow", locale));
+        labels.put("order.loginRequired", messageService.label("order.loginRequired", locale));
+        labels.put("order.checkoutTitle", messageService.label("order.checkoutTitle", locale));
+        labels.put("order.summary", messageService.label("order.summary", locale));
+        labels.put("order.quantity", messageService.label("order.quantity", locale));
+        labels.put("order.total", messageService.label("order.total", locale));
+        labels.put("order.confirm", messageService.label("order.confirm", locale));
+        labels.put("order.processing", messageService.label("order.processing", locale));
+        labels.put("order.successTitle", messageService.label("order.successTitle", locale));
+        labels.put("order.successMessage", messageService.label("order.successMessage", locale));
+        labels.put("order.status.PREPARING", messageService.label("order.status.PREPARING", locale));
+        labels.put("order.status.IN_TRANSIT", messageService.label("order.status.IN_TRANSIT", locale));
+        labels.put("order.status.DELIVERED", messageService.label("order.status.DELIVERED", locale));
+        labels.put("order.continueShopping", messageService.label("order.continueShopping", locale));
+        labels.put("order.error.generic", messageService.label("order.error.generic", locale));
+        labels.put("order.error.notFound", messageService.label("order.error.notFound", locale));
+        labels.put("order.error.conflict", messageService.label("order.error.conflict", locale));
+        labels.put("order.error.unauthorized", messageService.label("order.error.unauthorized", locale));
+        labels.put("order.status.CANCELLED", messageService.label("order.status.CANCELLED", locale));
+
+        labels.put("order.cancelc", messageService.label("order.cancelc", locale));
+        labels.put("order.cancelConfirmc", messageService.label("order.cancelConfirmc", locale));
+        labels.put("order.cancelSuccessc", messageService.label("order.cancelSuccessc", locale));
+        labels.put("order.error.cancelc", messageService.label("order.error.cancelc", locale));
+        labels.put("order.updateStatusc", messageService.label("order.updateStatusc", locale));
+        labels.put("order.statusUpdatedc", messageService.label("order.statusUpdatedc", locale));
+        labels.put("order.error.statusc", messageService.label("order.error.statusc", locale));
+        labels.put("nav.ordersc", messageService.label("nav.ordersc", locale));
+        labels.put("orders.titlec", messageService.label("orders.titlec", locale));
+        labels.put("orders.emptyc", messageService.label("orders.emptyc", locale));
+
         for (ECategory category : ECategory.values()) {
             labels.put("artifact.category." + category.name().toLowerCase(),
                     messageService.label("artifact.category." + category.name().toLowerCase(), locale));

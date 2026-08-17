@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Loader2, PackageX, ScrollText } from 'lucide-react'
-import { getMyOrders } from '../api/orders.js'
+import { AtSign, Ban, Loader2, PackageX, ScrollText } from 'lucide-react'
+import { cancelOrder, getMyOrders, updateOrderStatus } from '../api/orders.js'
 import { Badge } from '../components/ui/Badge.jsx'
 import { Button } from '../components/ui/Button.jsx'
 import { Card } from '../components/ui/Card.jsx'
@@ -30,20 +30,115 @@ function formatDate(iso, lang) {
 }
 
 const PAGE_SIZE = 10
+const ORDER_STATUSES = ['PREPARING', 'IN_TRANSIT', 'CANCELLED', 'DELIVERED']
 
-function OrderCard({ order, lang }) {
+// Interpolación mínima de {0}: sustituye el id del pedido, no traduce nada.
+// Espeja el patrón de CheckoutPage para `order.successMessage`.
+function interpolateOrderId(label, orderId) {
+  return label.replace(/\{0\}/g, String(orderId))
+}
+
+function OrderCard({ order, lang, showUser, isAdmin, onOrderUpdated }) {
   const { t } = useI18n()
+  const navigate = useNavigate()
+  const { clearSession } = useAuth()
+
+  const [pending, setPending] = useState(false)
+  const [feedback, setFeedback] = useState(null)
+
+  const cancellable = !isAdmin && order.status !== 'CANCELLED' && order.status !== 'DELIVERED'
+
+  function handleUnauthorized(err) {
+    if (err.status !== 401) return false
+    clearSession()
+    navigate(ROUTES.login, { replace: true })
+    return true
+  }
+
+  async function handleCancel() {
+    if (!window.confirm(interpolateOrderId(t('order.cancelConfirm'), order.id))) return
+    setPending(true)
+    setFeedback(null)
+    try {
+      onOrderUpdated(await cancelOrder(order.id, lang))
+      setFeedback({ ok: true, text: t('order.cancelSuccess') })
+    } catch (err) {
+      if (handleUnauthorized(err)) return
+      setFeedback({ ok: false, text: t('order.error.cancel') })
+    } finally {
+      setPending(false)
+    }
+  }
+
+  async function handleStatusChange(event) {
+    const newStatus = event.target.value
+    if (newStatus === order.status) return
+    setPending(true)
+    setFeedback(null)
+    try {
+      onOrderUpdated(await updateOrderStatus(order.id, newStatus, lang))
+      setFeedback({ ok: true, text: t('order.statusUpdated') })
+    } catch (err) {
+      if (handleUnauthorized(err)) return
+      setFeedback({ ok: false, text: t('order.error.status') })
+    } finally {
+      setPending(false)
+    }
+  }
 
   return (
     <Card className="flex flex-col gap-4 p-5 transition-all duration-200 hover:border-fuchsia-500/40 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-arcane-100">#{order.id}</p>
           <p className="mt-0.5 text-xs text-arcane-400">{formatDate(order.createdAt, lang)}</p>
+          {showUser && order.userEmail && (
+            <p className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-arcane-400">
+              <AtSign size={14} className="shrink-0" />
+              <span className="truncate">{order.userEmail}</span>
+            </p>
+          )}
         </div>
-        <Badge className="border-fuchsia-500/40 bg-fuchsia-500/15 text-fuchsia-300">
-          {t(`order.status.${order.status}`)}
-        </Badge>
+        <div className="flex flex-col items-end gap-2">
+          {isAdmin ? (
+            <select
+              value={order.status}
+              onChange={handleStatusChange}
+              disabled={pending}
+              aria-label={t('order.updateStatus')}
+              className="cursor-pointer rounded-full border border-fuchsia-500/40 bg-fuchsia-500/15 px-2.5 py-1 text-xs font-medium text-fuchsia-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500/70 disabled:pointer-events-none disabled:opacity-50"
+            >
+              {ORDER_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {t(`order.status.${status}`)}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Badge className="border-fuchsia-500/40 bg-fuchsia-500/15 text-fuchsia-300">
+              {t(`order.status.${order.status}`)}
+            </Badge>
+          )}
+          {cancellable && (
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={pending}
+              className="inline-flex items-center gap-1 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-medium text-red-300 transition-colors hover:bg-red-500/20 disabled:pointer-events-none disabled:opacity-50"
+            >
+              {pending ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+              {t('order.cancel')}
+            </button>
+          )}
+          {feedback && (
+            <p
+              aria-live="polite"
+              className={`text-xs ${feedback.ok ? 'text-emerald-300' : 'text-red-300'}`}
+            >
+              {feedback.text}
+            </p>
+          )}
+        </div>
       </div>
 
       <ul className="flex flex-col gap-2 border-t border-arcane-700/60 pt-4">
@@ -67,7 +162,7 @@ function OrderCard({ order, lang }) {
 export function OrdersPage() {
   const { t, lang } = useI18n()
   const navigate = useNavigate()
-  const { isLoggedIn, clearSession } = useAuth()
+  const { isLoggedIn, clearSession, isAdmin } = useAuth()
 
   const [orders, setOrders] = useState([])
   const [totalElements, setTotalElements] = useState(0)
@@ -138,6 +233,10 @@ export function OrdersPage() {
     }
   }
 
+  function handleOrderUpdated(updated) {
+    setOrders((current) => current.map((order) => (order.id === updated.id ? updated : order)))
+  }
+
   // Sin sesión aún: el guard ya está redirigiendo, no renderizamos nada.
   if (!isLoggedIn) {
     return null
@@ -181,7 +280,14 @@ export function OrdersPage() {
     content = (
       <div className="flex flex-col gap-4">
         {orders.map((order) => (
-          <OrderCard key={order.id} order={order} lang={lang} />
+          <OrderCard
+            key={order.id}
+            order={order}
+            lang={lang}
+            showUser={isAdmin}
+            isAdmin={isAdmin}
+            onOrderUpdated={handleOrderUpdated}
+          />
         ))}
         {hasMore && (
           <div className="mt-2 flex flex-col items-center gap-2" aria-live="polite">

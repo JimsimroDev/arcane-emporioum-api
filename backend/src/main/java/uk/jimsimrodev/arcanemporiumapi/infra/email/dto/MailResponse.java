@@ -1,5 +1,4 @@
 package uk.jimsimrodev.arcanemporiumapi.infra.email.dto;
 
-public record EmailRequest(String correo) {
-
+public record MailResponse(String id, String status) {
 }
