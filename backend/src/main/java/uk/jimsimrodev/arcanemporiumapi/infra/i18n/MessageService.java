@@ -1,9 +1,9 @@
 package uk.jimsimrodev.arcanemporiumapi.infra.i18n;
 
-import java.util.Locale;
-
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
+
+import java.util.Locale;
 
 /**
  * Single seam for UI label resolution. Every class that needs a localized

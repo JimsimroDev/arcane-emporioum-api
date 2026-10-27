@@ -1,23 +1,24 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.auth.Repositories;
 
-import java.util.Optional;
-
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import uk.jimsimrodev.arcanemporiumapi.domain.auth.model.Erole;
 import uk.jimsimrodev.arcanemporiumapi.domain.auth.model.UserEntity;
 
 @Repository
-public interface IUserRepository extends JpaRepository<UserEntity, Long> {
+public interface IUserRepository extends R2dbcRepository<UserEntity, Long> {
 
-    Page<UserEntity> findAllByActiveTrue(Pageable pagination);
+    Flux<UserEntity> findAllByActiveTrue(Pageable pageable);
 
-    Optional<UserEntity> findByEmail(String email);
+    Mono<Long> countByActiveTrue();
 
-    Optional<UserEntity> findByResetToken(String token);
+    Mono<UserEntity> findByEmail(String email);
 
-    int countByRole(Erole role);
+    Mono<UserEntity> findByResetToken(String token);
+
+    Mono<Long> countByRole(Erole role);
 }

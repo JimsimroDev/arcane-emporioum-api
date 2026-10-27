@@ -8,7 +8,8 @@ import { RarityBadge } from '../components/artifact/RarityBadge.jsx'
 import { Button } from '../components/ui/Button.jsx'
 import { Spinner } from '../components/ui/Spinner.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-import { CATEGORY_META, RARITY_VARIANTS } from '../lib/constants.js'
+import { useAuth } from '../hooks/useAuth.js'
+import { CATEGORY_META, RARITY_VARIANTS, ROUTES } from '../lib/constants.js'
 
 function InfoTile({ label, children }) {
   return (
@@ -22,6 +23,7 @@ function InfoTile({ label, children }) {
 export function ArtifactDetailPage() {
   const { id } = useParams()
   const { t, lang } = useI18n()
+  const { isLoggedIn } = useAuth()
   const { data: artifact, loading, error, retry } = useArtifact(id, lang)
 
   if (loading) {
@@ -116,6 +118,19 @@ export function ArtifactDetailPage() {
               {t('artifact.outOfStock')}
             </span>
           )}
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            {!isLoggedIn && (
+              <Button as={Link} to={`${ROUTES.login}?artifact=${artifact.id}`} className="w-full sm:w-auto">
+                {t('order.loginRequired')}
+              </Button>
+            )}
+            {isLoggedIn && artifact.inStock && (
+              <Button as={Link} to={`${ROUTES.checkout}?artifact=${artifact.id}`} className="w-full sm:w-auto">
+                {t('order.buyNow')}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

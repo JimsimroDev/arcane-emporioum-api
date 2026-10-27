@@ -1,13 +1,13 @@
 package uk.jimsimrodev.arcanemporiumapi.infra.currency;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
-
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 public class ExchangeRateClient {
@@ -24,7 +24,8 @@ public class ExchangeRateClient {
             List<ExchangeRateQuote> quotes = restClient.get()
                     .uri("/rates?base={base}&quotes={quote}", base, quote)
                     .retrieve()
-                    .body(new ParameterizedTypeReference<>() {});
+                    .body(new ParameterizedTypeReference<>() {
+                    });
 
             return quotes == null || quotes.isEmpty()
                     ? Optional.empty()

@@ -1,15 +1,14 @@
 package uk.jimsimrodev.arcanemporiumapi.infra.i18n;
 
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
-
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.ECategory;
 import uk.jimsimrodev.arcanemporiumapi.domain.artifact.model.ERarity;
+
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -133,6 +132,37 @@ public class LabelController {
         labels.put("admin.confirmDelete", messageService.label("admin.confirmDelete", locale));
         labels.put("admin.userDeleted", messageService.label("admin.userDeleted", locale));
         labels.put("admin.cannotDeleteSelf", messageService.label("admin.cannotDeleteSelf", locale));
+
+        labels.put("order.buyNow", messageService.label("order.buyNow", locale));
+        labels.put("order.loginRequired", messageService.label("order.loginRequired", locale));
+        labels.put("order.checkoutTitle", messageService.label("order.checkoutTitle", locale));
+        labels.put("order.summary", messageService.label("order.summary", locale));
+        labels.put("order.quantity", messageService.label("order.quantity", locale));
+        labels.put("order.total", messageService.label("order.total", locale));
+        labels.put("order.confirm", messageService.label("order.confirm", locale));
+        labels.put("order.processing", messageService.label("order.processing", locale));
+        labels.put("order.successTitle", messageService.label("order.successTitle", locale));
+        labels.put("order.successMessage", messageService.label("order.successMessage", locale));
+        labels.put("order.status.PREPARING", messageService.label("order.status.PREPARING", locale));
+        labels.put("order.status.IN_TRANSIT", messageService.label("order.status.IN_TRANSIT", locale));
+        labels.put("order.status.DELIVERED", messageService.label("order.status.DELIVERED", locale));
+        labels.put("order.continueShopping", messageService.label("order.continueShopping", locale));
+        labels.put("order.error.generic", messageService.label("order.error.generic", locale));
+        labels.put("order.error.notFound", messageService.label("order.error.notFound", locale));
+        labels.put("order.error.conflict", messageService.label("order.error.conflict", locale));
+        labels.put("order.error.unauthorized", messageService.label("order.error.unauthorized", locale));
+        labels.put("order.status.CANCELLED", messageService.label("order.status.CANCELLED", locale));
+
+        labels.put("order.cancel", messageService.label("order.cancel", locale));
+        labels.put("order.cancelConfirm", messageService.label("order.cancelConfirm", locale));
+        labels.put("order.cancelSuccess", messageService.label("order.cancelSuccess", locale));
+        labels.put("order.error.cancel", messageService.label("order.error.cancel", locale));
+        labels.put("order.updateStatus", messageService.label("order.updateStatus", locale));
+        labels.put("order.statusUpdated", messageService.label("order.statusUpdated", locale));
+        labels.put("order.error.status", messageService.label("order.error.status", locale));
+        labels.put("nav.orders", messageService.label("nav.orders", locale));
+        labels.put("orders.title", messageService.label("orders.title", locale));
+        labels.put("orders.empty", messageService.label("orders.empty", locale));
 
         for (ECategory category : ECategory.values()) {
             labels.put("artifact.category." + category.name().toLowerCase(),

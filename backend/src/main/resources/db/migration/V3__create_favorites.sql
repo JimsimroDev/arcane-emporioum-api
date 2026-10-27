@@ -1,7 +1,8 @@
-CREATE TABLE favorites (
+CREATE TABLE favorites
+(
     id          BIGSERIAL PRIMARY KEY,
-    id_user     BIGINT NOT NULL,
-    id_artifact BIGINT NOT NULL,
+    id_user     BIGINT       NOT NULL,
+    id_artifact BIGINT       NOT NULL,
     created_at  TIMESTAMP(6) NOT NULL,
     CONSTRAINT fk_favorite_user
         FOREIGN KEY (id_user) REFERENCES users (id) ON DELETE CASCADE,

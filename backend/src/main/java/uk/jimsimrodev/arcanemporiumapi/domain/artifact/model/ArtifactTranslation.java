@@ -1,22 +1,16 @@
 package uk.jimsimrodev.arcanemporiumapi.domain.artifact.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
-@Entity
 @Table(name = "artifact_translations")
 public class ArtifactTranslation {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne
-    @JoinColumn(name = "id_artifact")
-    private Artifact artifact;
+
+    @Column("id_artifact")
+    private Long artifactId;
     private String locale;
     private String title;
     private String description;
@@ -29,12 +23,12 @@ public class ArtifactTranslation {
         this.id = id;
     }
 
-    public Artifact getArtifact() {
-        return artifact;
+    public Long getArtifactId() {
+        return artifactId;
     }
 
-    public void setArtifact(Artifact artifact) {
-        this.artifact = artifact;
+    public void setArtifactId(Long artifactId) {
+        this.artifactId = artifactId;
     }
 
     public String getLocale() {

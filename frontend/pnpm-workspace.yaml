@@ -1,2 +1,13 @@
 allowBuilds:
   esbuild: true
+
+# El repo vive en un disco compartido entre Windows y WSL: node_modules debe
+# contener binarios nativos de AMBAS plataformas, no solo de la que ejecuta el
+# install. Nota: lista ambas explícitamente; `current` solo coincidiría con la
+# plataforma en ejecución.
+supportedArchitectures:
+  os:
+    - win32
+    - linux
+  cpu:
+    - x64

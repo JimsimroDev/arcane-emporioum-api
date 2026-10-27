@@ -1,4 +1,3 @@
-
 package uk.jimsimrodev.arcanemporiumapi;
 
 import org.springframework.boot.SpringApplication;
@@ -9,7 +8,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class ArcaneEmporiumApiApplication {
 
-  public static void main(String[] args) {
-    SpringApplication.run(ArcaneEmporiumApiApplication.class, args);
-  }
+    public static void main(String[] args) {
+        SpringApplication.run(ArcaneEmporiumApiApplication.class, args);
+    }
 }

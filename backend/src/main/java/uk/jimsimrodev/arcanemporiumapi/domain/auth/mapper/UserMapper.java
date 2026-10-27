@@ -19,7 +19,7 @@ public final class UserMapper {
     }
 
     // DTO -> Entidad
-    public static UserEntity toEntity(UserRequest request, String encodedPassword,Erole role) {
+    public static UserEntity toEntity(UserRequest request, String encodedPassword, Erole role) {
 
         UserEntity user = new UserEntity();
         user.setEmail(request.email());

@@ -33,7 +33,18 @@ export function LoginPage() {
     try {
       const user = await login(email.trim(), password)
       saveUser(user)
-      navigate(user.role === 'ADMIN' ? ROUTES.admin : ROUTES.user, { replace: true })
+
+      // Si se llegó desde "Comprar ahora" (?artifact=ID), volver al checkout
+      // para continuar la compra; si no, navegación por rol como siempre.
+      const artifactParam = new URLSearchParams(location.search).get('artifact')
+      const nextPath =
+        artifactParam !== null && /^\d+$/.test(artifactParam)
+          ? `${ROUTES.checkout}?artifact=${artifactParam}`
+          : user.role === 'ADMIN'
+            ? ROUTES.admin
+            : ROUTES.user
+
+      navigate(nextPath, { replace: true })
     } catch (err) {
       setError(err.status === 401 ? t('login.error') : err.message || t('error.generic'))
     } finally {
