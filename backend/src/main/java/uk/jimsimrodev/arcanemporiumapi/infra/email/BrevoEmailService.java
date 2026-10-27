@@ -65,7 +65,7 @@ public class BrevoEmailService implements IEmailService {
     }
 
     @Override
-    public Mono<Void> sendEmail(String recipient,OrderResponse orderResponse) {
+    public Mono<Void> sendEmail(String recipient, OrderResponse orderResponse) {
 
         String htmlContent =
                 "<h2>¡Tu pedido ha sido creado! 🎉</h2>"
@@ -85,7 +85,7 @@ public class BrevoEmailService implements IEmailService {
                         + "</ul>"
                         + "<p>Gracias por tu compra. Te avisaremos cuando haya novedades sobre tu pedido.</p>";
 
-        String subject = "¡Tu pedido ha sido creado con éxito! 🎉";
+        String subject = "¡Actualización de tu pedido! 📦";
 
         MailRequesDto payload = new MailRequesDto(
                 htmlContent,

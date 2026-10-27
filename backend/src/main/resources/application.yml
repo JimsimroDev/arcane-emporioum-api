@@ -13,14 +13,14 @@ spring:
 
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/${NAME_DB:arcane-emporium-db}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    username: ${USERNAME_DB}
+    password: ${PASSWORD_DB}
 
   flyway:
-    enabled: false
+    enabled: true
     url: jdbc:postgresql://localhost:5432/${NAME_DB:arcane-emporium-db}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    user: ${USERNAME_DB}
+    password: ${PASSWORD_DB}
 
 server:
   port: 8080

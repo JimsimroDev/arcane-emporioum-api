@@ -43,10 +43,10 @@ public class OrderController {
 
         return orderService.createOrder(authentication.getName(), request, Locale.forLanguageTag(lang))
                 .flatMap(orderResponse ->
-                        brevoEmailService.sendEmail(authentication.getName(),orderResponse)
+                        brevoEmailService.sendEmail(authentication.getName(), orderResponse)
                                 .subscribeOn(Schedulers.boundedElastic())
-                                .onErrorResume(ex ->{
-                                    LOGGER.error("No se pudo enviar el correo del pedido {}: {}",orderResponse.id(), ex);
+                                .onErrorResume(ex -> {
+                                    LOGGER.error("No se pudo enviar el correo del pedido {}: {}", orderResponse.id(), ex);
                                     return Mono.empty();
                                 })
                                 .thenReturn(orderResponse));
@@ -69,13 +69,29 @@ public class OrderController {
     public Mono<OrderResponse> updateOrder(@PathVariable Long orderId, @RequestBody OrderStatusRequest request,
                                            @RequestParam(defaultValue = "es") String lang) {
 
-        return orderService.updateOrder(orderId, request.newStatus(), Locale.forLanguageTag(lang));
+        return orderService.updateOrder(orderId, request.newStatus(), Locale.forLanguageTag(lang))
+                .flatMap(orderResponse ->
+                    brevoEmailService.sendEmail(orderResponse.userEmail(), orderResponse)
+                            .subscribeOn(Schedulers.boundedElastic())
+                            .onErrorResume(ex -> {
+                                LOGGER.error("No se pudo enviar el correo del pedido {}: {}", orderResponse.id(), ex);
+                                return Mono.empty();
+                            }).thenReturn(orderResponse)
+                );
     }
 
     @PostMapping("/{orderId}/cancel")
     public Mono<OrderResponse> cancelOrder(@PathVariable Long orderId, Authentication authentication,
                                            @RequestParam(defaultValue = "es") String lang) {
 
-        return orderService.cancelOrder(orderId, authentication.getName(), Locale.forLanguageTag(lang));
+        return orderService.cancelOrder(orderId, authentication.getName(), Locale.forLanguageTag(lang))
+                .flatMap(orderResponse ->
+                        brevoEmailService.sendEmail(authentication.getName(), orderResponse)
+                                .subscribeOn(Schedulers.boundedElastic())
+                                .onErrorResume(ex -> {
+                                    LOGGER.error("No se pudo enviar el correo del pedido {}: {}", orderResponse.id(), ex);
+                                    return Mono.empty();
+                                }).thenReturn(orderResponse)
+                );
     }
 }
